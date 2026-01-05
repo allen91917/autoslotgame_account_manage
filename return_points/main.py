@@ -73,6 +73,10 @@ def init_driver():
         options = webdriver.ChromeOptions()
         options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
+        options.add_experimental_option('prefs', {
+            'credentials_enable_service': False,
+            'profile.password_manager_enabled': False
+        })
         options.add_argument('--disable-blink-features=AutomationControlled')
         options.add_argument('--log-level=3')
         options.add_argument('--disable-gpu')
@@ -186,38 +190,113 @@ def navigate_to_member_management(driver):
 
 
 def process_member_balances(driver, target_amount=5000):
-    """處理所有會員餘額，將每個會員餘額設定為目標金額"""
+    """處理所有會員餘額，根據廠商餘額計算調整金額"""
     try:
         print(Fore.CYAN + f"\n開始處理會員餘額，目標金額: {target_amount}" + Style.RESET_ALL)
         time.sleep(2)
         
-        # 找到所有餘額按鈕
-        balance_buttons = driver.find_elements(By.XPATH, 
-            "//button[contains(@class, 'ant-btn-link') and contains(@class, 'block')]//span")
+        # 找到所有會員行(排除表頭,只找實際的資料行)
+        member_rows = driver.find_elements(By.XPATH, 
+            "//div[contains(@class, 'my-table-row-box')]//div[contains(@class, 'my-table-row')]")
         
-        total_members = len(balance_buttons)
-        print(Fore.GREEN + f"找到 {total_members} 個會員帳號" + Style.RESET_ALL)
+        total_rows = len(member_rows)
+        # 第一筆是代理,不是會員,所以會員數要-1
+        total_members = total_rows - 1
+        print(Fore.GREEN + f"找到 {total_members} 個會員帳號(第1筆為代理,已排除)" + Style.RESET_ALL)
         
-        for index, button in enumerate(balance_buttons, 1):
+        # 從第2筆開始處理(跳過第1筆代理)
+        for index in range(2, total_rows + 1):
             try:
-                # 獲取當前餘額
-                current_balance = button.text.strip()
-                print(Fore.CYAN + f"\n處理第 {index}/{total_members} 個會員" + Style.RESET_ALL)
-                print(Fore.YELLOW + f"當前餘額: {current_balance}" + Style.RESET_ALL)
+                # 使用更精確的 XPath 定位餘額和廠商餘額
+                balance_xpath = f"(//div[contains(@class, 'my-table-row-box')]//div[contains(@class, 'my-table-row')])[{index}]//div[contains(@class, 'my-table-cell') and .//div[text()='餘額']]//button//span"
+                vendor_balance_xpath = f"(//div[contains(@class, 'my-table-row-box')]//div[contains(@class, 'my-table-row')])[{index}]//div[contains(@class, 'my-table-cell') and .//div[text()='廠商餘額']]//span[1]"
+                balance_button_xpath = f"(//div[contains(@class, 'my-table-row-box')]//div[contains(@class, 'my-table-row')])[{index}]//div[.//div[text()='餘額']]//button"
+                
+                # 顯示時要-1,因為跳過了第1筆代理
+                member_number = index - 1
+                print(Fore.CYAN + f"\n處理第 {member_number}/{total_members} 個會員" + Style.RESET_ALL)
+                
+                # 獲取餘額
+                balance_element = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, balance_xpath))
+                )
+                balance_text = balance_element.text.strip().replace(',', '')
+                
+                # 獲取廠商餘額
+                vendor_balance_element = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, vendor_balance_xpath))
+                )
+                vendor_balance_text = vendor_balance_element.text.strip().replace(',', '')
+                
+                # 檢查是否為空字串
+                if not balance_text or not vendor_balance_text:
+                    print(Fore.YELLOW + f"餘額資訊不完整，跳過" + Style.RESET_ALL)
+                    continue
+                
+                current_balance = float(balance_text)
+                vendor_balance = float(vendor_balance_text)
+                
+                print(Fore.YELLOW + f"餘額: {current_balance:,.2f}" + Style.RESET_ALL)
+                print(Fore.YELLOW + f"廠商餘額: {vendor_balance:,.2f}" + Style.RESET_ALL)
+                
+                # 判斷是否在遊戲中：如果餘額為0但廠商餘額有錢
+                if current_balance == 0 and vendor_balance > 0:
+                    print(Fore.YELLOW + "⚠ 帳號在遊戲中（餘額為0但廠商餘額有錢），跳過調整" + Style.RESET_ALL)
+                    continue
+                
+                # 基於餘額本身計算需要調整的金額
+                adjustment = target_amount - current_balance
+                
+                if abs(adjustment) < 0.01:  # 容許 0.01 的誤差
+                    print(Fore.GREEN + f"餘額已經接近目標金額 {target_amount}，跳過" + Style.RESET_ALL)
+                    continue
+                
+                print(Fore.YELLOW + f"需要調整: {adjustment:+.2f}" + Style.RESET_ALL)
                 
                 # 點擊餘額按鈕
-                button.click()
+                balance_button = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, balance_button_xpath))
+                )
+                balance_button.click()
                 print(Fore.GREEN + "已點擊餘額按鈕" + Style.RESET_ALL)
                 time.sleep(2)
                 
-                # 找到輸入框並輸入金額
-                amount_input = WebDriverWait(driver, 10).until(
+                # 判斷是增加還是減少
+                if adjustment > 0:
+                    # 小於目標金額，需要增加 (value="1")
+                    print(Fore.CYAN + "選擇增加餘額選項" + Style.RESET_ALL)
+                    add_radio = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH, '//input[@type="radio" and @value="1"]'))
+                    )
+                    driver.execute_script("arguments[0].click();", add_radio)
+                    time.sleep(2)  # 增加等待時間讓輸入框準備好
+                else:
+                    # 大於目標金額，需要減少 (value="2")
+                    print(Fore.CYAN + "選擇減少餘額選項" + Style.RESET_ALL)
+                    subtract_radio = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH, '//input[@type="radio" and @value="2"]'))
+                    )
+                    driver.execute_script("arguments[0].click();", subtract_radio)
+                    time.sleep(2)  # 增加等待時間讓輸入框準備好
+                
+                # 等待輸入框出現並變為可用
+                print(Fore.CYAN + "等待輸入框準備就緒..." + Style.RESET_ALL)
+                amount_input = WebDriverWait(driver, 15).until(
+                    EC.visibility_of_element_located((By.XPATH, '//input[@id="form_item_amount"]'))
+                )
+                # 確保輸入框可點擊
+                WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.XPATH, '//input[@id="form_item_amount"]'))
                 )
+                time.sleep(1)
+                
+                # 清空並輸入金額
+                amount_input.click()
+                time.sleep(0.5)
                 amount_input.clear()
                 time.sleep(1)
-                amount_input.send_keys(str(target_amount))
-                print(Fore.GREEN + f"已輸入金額: {target_amount}" + Style.RESET_ALL)
+                amount_input.send_keys(str(abs(int(adjustment))))
+                print(Fore.GREEN + f"已輸入調整金額: {abs(int(adjustment))}" + Style.RESET_ALL)
                 time.sleep(2)
                 
                 # 點擊保存按鈕
@@ -225,15 +304,34 @@ def process_member_balances(driver, target_amount=5000):
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'ant-btn-primary')]//span[text()='保存']"))
                 )
                 save_button.click()
-                print(Fore.GREEN + f"已點擊保存，餘額已更新為 {target_amount}" + Style.RESET_ALL)
+                print(Fore.GREEN + f"已點擊保存，餘額將更新為 {target_amount:,.2f}" + Style.RESET_ALL)
                 time.sleep(2)
                 
-                # 重新獲取所有按鈕（因為頁面可能已更新）
-                balance_buttons = driver.find_elements(By.XPATH, 
-                    "//button[contains(@class, 'ant-btn-link') and contains(@class, 'block')]//span")
+                # 等待並關閉可能出現的彈窗（包括成功提示或錯誤提示）
+                try:
+                    # 等待彈窗消失或關閉按鈕出現
+                    time.sleep(1)
+                    # 檢查是否有關閉按鈕並點擊
+                    close_buttons = driver.find_elements(By.XPATH, 
+                        "//button[contains(@class, 'ant-modal-close') or .//span[contains(@class, 'anticon-close')]]")
+                    for close_btn in close_buttons:
+                        try:
+                            if close_btn.is_displayed():
+                                close_btn.click()
+                                time.sleep(1)
+                        except:
+                            pass
+                    # 按 ESC 鍵關閉彈窗
+                    from selenium.webdriver.common.keys import Keys
+                    driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+                    time.sleep(1)
+                except:
+                    pass
+                
+                print(Fore.GREEN + f"✓ 第 {member_number} 個會員處理完成" + Style.RESET_ALL)
                 
             except Exception as e:
-                print(Fore.RED + f"處理第 {index} 個會員時發生錯誤: {e}" + Style.RESET_ALL)
+                print(Fore.RED + f"處理第 {member_number} 個會員時發生錯誤: {e}" + Style.RESET_ALL)
                 continue
         
         print(Fore.GREEN + f"\n所有會員餘額處理完成！" + Style.RESET_ALL)
@@ -270,22 +368,24 @@ def main():
         
         # 導航到會員管理
         navigate_to_member_management(driver)
-        time.sleep(2)
+        print("\n" + Fore.CYAN + "準備開始處理會員餘額..." + Style.RESET_ALL)
+        time.sleep(3)
         
-        # 處理所有會員餘額（使用檔案中的金額）
+        # 處理所有會員餘額(使用檔案中的金額)
         process_member_balances(driver, target_amount=target_amount)        
         print(f"\n{'='*50}")
-        print(Fore.GREEN + "所有操作完成！" + Style.RESET_ALL)
+        print(Fore.GREEN + "所有操作完成!" + Style.RESET_ALL)
         print(f"{'='*50}\n")
-        
-        input("\n按 Enter 關閉瀏覽器...")
         
     except Exception as e:
         print(Fore.RED + f"發生錯誤: {e}" + Style.RESET_ALL)
     finally:
         if driver:
             try:
-                print("\033[1;33m正在關閉瀏覽器...\033[0m")
+                # 自動關閉瀏覽器
+                print(Fore.YELLOW + "3秒後自動關閉瀏覽器..." + Style.RESET_ALL)
+                time.sleep(3)
+                print(Fore.YELLOW + "正在關閉瀏覽器..." + Style.RESET_ALL)
                 driver.quit()
                 print(Fore.GREEN + "瀏覽器已關閉" + Style.RESET_ALL)
             except Exception as e:
