@@ -19,7 +19,14 @@ def load_user_info():
     """從用戶資訊.txt讀取所有帳號、密碼和金額"""
     accounts = []
     try:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        # 判斷是否為打包後的 exe
+        if getattr(sys, 'frozen', False):
+            # 打包後的 exe，使用 exe 所在目錄
+            script_dir = os.path.dirname(sys.executable)
+        else:
+            # Python 腳本運行，使用腳本所在目錄
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+        
         file_path = os.path.join(script_dir, '用戶資訊.txt')
         
         with open(file_path, 'r', encoding='utf-8') as file:
