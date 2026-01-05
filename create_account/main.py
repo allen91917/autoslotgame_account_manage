@@ -81,7 +81,7 @@ def generate_random_name():
     ]
 
     # 讓雙姓比率稍微低一點（自然一點）
-    if random.random() < 0.15:  # 15% 使用雙姓
+    if random.random() < 0.1:  # 10% 使用雙姓
         last_name = random.choice(double_last_names)
     else:
         last_name = random.choice(single_last_names)
@@ -167,7 +167,7 @@ def login(driver):
 
         # ⭐ 不再點擊返回首頁,直接導向個人頁面
         target_url = "https://admin.fin88.app/#/dashboard/workbench"
-        print(f"導向個人頁面:{target_url}")
+        # print(f"導向個人頁面:{target_url}")
         driver.get(target_url)
 
         # 等待頁面載入
@@ -175,12 +175,12 @@ def login(driver):
 
         # 關閉公告彈窗
         try:
-            print("檢查是否有公告彈窗...")
+            # print("檢查是否有公告彈窗...")
             close_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, "//button[.//span[text()='確 認']]"))
             )
             close_button.click()
-            print("已關閉公告彈窗")
+            # print("已關閉公告彈窗")
             time.sleep(1)
         except:
             print("未發現公告彈窗或已關閉")
@@ -206,7 +206,7 @@ def agent_control(driver):
 
     try:
         # === 1️⃣ 點擊「agent_button」(下線代理管理) ===
-        print("尋找下線代理管理按鈕...")
+        # print("尋找下線代理管理按鈕...")
         agent_button_xpath = "//li[contains(@class, 'vben-menu-item')]//span[text()='下線代理管理']"
         
         # 先確認元素存在
@@ -219,11 +219,11 @@ def agent_control(driver):
         # 等待可點擊並點擊
         agent_btn = wait.until(EC.element_to_be_clickable((By.XPATH, agent_button_xpath)))
         agent_btn.click()
-        print("已點擊 agent_button")
+        # print("已點擊 agent_button")
         time.sleep(6)  # 等待頁面加載
 
         # === 2️⃣ 點擊「direct_member」(會員管理) ===
-        print("尋找會員管理按鈕...")
+        # print("尋找會員管理按鈕...")
         direct_member_xpath = "//label[contains(@class, 'ant-radio-button-wrapper')]//span[text()='會員管理']"
         
         dm_btn = wait.until(EC.presence_of_element_located((By.XPATH, direct_member_xpath)))
@@ -232,11 +232,11 @@ def agent_control(driver):
         
         dm_btn = wait.until(EC.element_to_be_clickable((By.XPATH, direct_member_xpath)))
         dm_btn.click()
-        print("已點擊 direct_member")
+        # print("已點擊 direct_member")
         time.sleep(3)  # 等待頁面加載
 
         # === 3️⃣ 點擊「create_button」(新建會員) ===
-        print("尋找新建會員按鈕...")
+        # print("尋找新建會員按鈕...")
         create_button_xpath = "//button[contains(@class, 'ant-btn-primary')]//span[text()='新建會員']"
         
         create_btn = wait.until(EC.presence_of_element_located((By.XPATH, create_button_xpath)))
@@ -245,7 +245,7 @@ def agent_control(driver):
         
         create_btn = wait.until(EC.element_to_be_clickable((By.XPATH, create_button_xpath)))
         create_btn.click()
-        print("已點擊 create_button")
+        # print("已點擊 create_button")
         time.sleep(3)  # 等待頁面加載
 
     except Exception as e:
@@ -282,20 +282,36 @@ def create_account(driver):
     # === 2️⃣ 點擊隨機按鈕 ===
     random_btn = wait.until(EC.element_to_be_clickable((By.XPATH, random_btn_xpath)))
     random_btn.click()
-    print("已點擊隨機按鈕")
-    time.sleep(3)  # 等待帳號生成
+    print("已點擊自動生成按鈕，等待帳號生成...")
+    time.sleep(5)  # 等待系統生成帳號
 
-    # === 3️⃣ 讀取生成帳號 ===
-    account_input = wait.until(
-        EC.presence_of_element_located((By.XPATH, account_input_xpath))
-    )
-    account_value = account_input.get_attribute("value")
-
+    # === 3️⃣ 從頁面 HTML 提取帳號 ===
+    account_value = None
+    print("正在讀取帳號...")
+    
+    for attempt in range(10):
+        try:
+            import re
+            page_source = driver.page_source
+            
+            # 用正則表達式從 HTML 中提取帳號
+            match = re.search(r'id="form_item_accountNo"[^>]*value="([^"]+)"', page_source)
+            
+            if match and match.group(1):
+                account_value = match.group(1)
+                # print(f"成功讀取帳號：{account_value}")
+                break
+            else:
+                # print(f"第 {attempt + 1} 次嘗試，帳號尚未生成...")
+                time.sleep(1)
+                
+        except Exception as e:
+            # print(f"第 {attempt + 1} 次讀取失敗：{e}")
+            time.sleep(1)
+    
     if not account_value:
-        time.sleep(1)
-        account_value = account_input.get_attribute("value")
-
-    print(f"生成帳號：{account_value}")
+        print(" 無法讀取帳號")
+        account_value = "ERROR_NO_ACCOUNT"
 
     # === 4️⃣ 填入密碼 ===
     password_input = wait.until(
@@ -303,14 +319,14 @@ def create_account(driver):
     )
     password_input.clear()
     password_input.send_keys(default_password)
-    print(f"已輸入密碼：{default_password}")
+    # print(f"已輸入密碼：{default_password}")
 
     comfirm_password_input = wait.until(
         EC.presence_of_element_located((By.XPATH, comfirm_password_input_xpath))
     )
     comfirm_password_input.clear()
     comfirm_password_input.send_keys(default_password)
-    print(f"已輸入確認密碼：{default_password}")
+    # print(f"已輸入確認密碼：{default_password}")
 
     # === 5️⃣ 填入暱稱 ===
     nickname_xpath = "//input[@id='form_item_nickName']"
@@ -323,7 +339,7 @@ def create_account(driver):
     nickname_input.clear()
     nickname_input.send_keys(nickname)
 
-    print(f"已輸入暱稱：{nickname}")
+    # print(f"已輸入暱稱：{nickname}")
     time.sleep(1)
     
     # === 6️⃣ 點擊下一步 === 
@@ -349,12 +365,12 @@ def set_credit_limit(driver):
 
     wait = WebDriverWait(driver, 10)
 
-    credit_input_xpath = "/html/body/div[3]/div/div[2]/div/div[1]/div/div[2]/div[2]/div/form/div/div[1]/div/div/div[2]/div/div/div/div/input"
-    next2_button_xpath = "/html/body/div[3]/div/div[2]/div/div[1]/div/div[2]/div[2]/div/form/div/div[3]/button[3]"
+    credit_input_xpath = "//input[@id='form_item_remain']"
+    next_button_xpath = "//button[contains(@class, 'ant-btn-primary')]//span[text()='下一步']/parent::button"
 
     limit_value = "5000"  # 固定額度
 
-    print("開始設定額度為 5000 ...")
+    # print("開始設定額度為 5000 ...")
 
     # === 1️⃣ 找到額度輸入框 ===
     credit_input = wait.until(
@@ -368,13 +384,13 @@ def set_credit_limit(driver):
     # === 2️⃣ 輸入額度 ===
     credit_input.clear()
     credit_input.send_keys(limit_value)
-    print(f"已輸入額度：{limit_value}")
+    # print(f"已輸入額度：{limit_value}")
 
     time.sleep(0.3)
 
     # === 3️⃣ 按下下一步 ===
     next_button = wait.until(
-        EC.element_to_be_clickable((By.XPATH, next2_button_xpath))
+        EC.element_to_be_clickable((By.XPATH, next_button_xpath))
     )
     next_button.click()
 
@@ -394,14 +410,14 @@ def manufacturers(driver):
 
     wait = WebDriverWait(driver, 10)
 
-    next_btn_xpath = "/html/body/div[4]/div/div[2]/div/div[1]/div/div[2]/div[2]/div/div[2]/button[3]"
+    next_btn_xpath = "//button[contains(@class, 'ant-btn-primary')]//span[text()='下一步']/parent::button"
 
-    print("進入廠商階段")
+    # print("進入廠商階段")
 
     # === 1️⃣ 按 下一步 ===
     next_btn = wait.until(EC.element_to_be_clickable((By.XPATH, next_btn_xpath)))
     next_btn.click()
-    print("已按下『下一步』")
+    # print("已按下『下一步』")
     time.sleep(2)
 
 
@@ -413,9 +429,9 @@ def hold_position(driver):
 
     wait = WebDriverWait(driver, 10)
 
-    next_btn_xpath = "/html/body/div[4]/div/div[2]/div/div[1]/div/div[2]/div[2]/div/div[4]/button[3]"
+    next_btn_xpath = "//button[contains(@class, 'ant-btn-primary')]//span[text()='下一步']/parent::button"
 
-    print("進入退水設定")
+    # print("進入退水設定")
 
     # === 1️⃣ 找到下一步按鈕並下滑 ===
     next_btn = wait.until(EC.presence_of_element_located((By.XPATH, next_btn_xpath)))
@@ -425,70 +441,82 @@ def hold_position(driver):
     # === 2️⃣ 等待按鈕可點擊後點擊 ===
     next_btn = wait.until(EC.element_to_be_clickable((By.XPATH, next_btn_xpath)))
     next_btn.click()
-    print("已按下『下一步』")
+    # print("已按下『下一步』")
     time.sleep(2)
 # ============================
-#  risk_control
+#  限紅設定
 # ============================
 
-def risk_control(driver):
+def Table_limit(driver):
     """
-    封控（risk control）
-    1. 檢查限紅 true/false
-    2. 若未勾選 → 自動點擊
-    3. 點擊 Create → sleep 2
-    4. 點擊 Close → sleep 2
+    限紅設定流程
+    1. 點擊限紅下拉選單並選擇第一個選項
+    2. 輸入封頂數值為 0
+    3. 點擊下一步
     """
 
     wait = WebDriverWait(driver, 10)
 
-    toggle_xpath = "/html/body/div/div[2]/div/section/main/div[3]/div[3]/div[3]/div[2]/div"
-    create_btn_xpath = "/html/body/div/div[2]/div/section/main/div[4]/button[3]"   # ← 正確
-    close_btn_xpath = "/html/body/div/div[2]/div/section/main/div[6]/div[2]/button[3]"
+    # 使用 id 定位下拉選單
+    table_limit_xpath = "//input[@id='form_item_betLimitId']"
+    cap_xpath = "//input[@id='form_item_topRemain']"
+    next_btn_xpath = "//button[contains(@class, 'ant-btn-primary')]//span[text()='下一步']/parent::button"
+    cancel_btn_xpath = "//button[contains(@class, 'ant-btn-default')]//span[text()='取 消']/.."
 
-    print("檢查封控開關狀態...")
+    # print("進入限紅設定階段")
 
-    # === 1️⃣ 找到開關 ===
-    toggle = wait.until(
-        EC.presence_of_element_located((By.XPATH, toggle_xpath))
-    )
+    try:
+        # === 1️⃣ 點擊限紅下拉選單 ===
+        # 點擊包含選單的 div 容器,而不是 input
+        table_limit_xpath = "//div[contains(@class, 'ant-select')][@codefield='betLimitId']"
+        table_limit = wait.until(EC.element_to_be_clickable((By.XPATH, table_limit_xpath)))
+        
+        # 滾動到元素位置
+        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", table_limit)
+        time.sleep(0.5)
+        
+        table_limit.click()
+        print("已點擊限紅下拉選單")
+        time.sleep(1)
 
-    # 下滑到開關位置
-    driver.execute_script(
-        "arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", toggle
-    )
-    time.sleep(0.5)
+        # === 2️⃣ 選擇第一個選項 (100-1000) ===
+        first_option_xpath = "//div[contains(@class, 'ant-select-item-option')][@title='100-1000']"
+        first_option = wait.until(EC.element_to_be_clickable((By.XPATH, first_option_xpath)))
+        first_option.click()
+        print("已選擇限紅選項：100-1000")
+        time.sleep(1)
 
-    # === 2️⃣ 判斷 true / false 屬性 ===
-    attrs = ["aria-checked", "data-checked", "checked", "value"]
-    state = None
-    for attr in attrs:
-        val = toggle.get_attribute(attr)
-        if val is not None:
-            state = val.lower().strip()
-            break
-
-    print(f"封控屬性：{state}")
-
-    # === 3️⃣ 如果是 false → 自動打勾 ===
-    if state != "true":
-        print("限紅未勾選，自動勾選...")
-        toggle.click()
+        # === 3️⃣ 輸入封頂數值 ===
+        cap_input = wait.until(EC.presence_of_element_located((By.XPATH, cap_xpath)))
+        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", cap_input)
+        time.sleep(0.5)
+        
+        cap_input.clear()
+        cap_input.send_keys("0")
+        # print("已輸入封頂數值：0")
         time.sleep(0.5)
 
-    # === 4️⃣ 點擊 Create ===
-    create_btn = wait.until(EC.element_to_be_clickable((By.XPATH, create_btn_xpath)))
-    create_btn.click()
-    print("已按下 Create")
-    time.sleep(2)
+        # === 4️⃣ 點擊下一步 ===
+        next_btn = wait.until(EC.element_to_be_clickable((By.XPATH, next_btn_xpath)))
+        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", next_btn)
+        time.sleep(0.5)
+        
+        next_btn.click()
+        # print("已按下『下一步』")
+        time.sleep(2)
 
-    # === 5️⃣ 點擊 Close ===
-    close_btn = wait.until(EC.element_to_be_clickable((By.XPATH, close_btn_xpath)))
-    close_btn.click()
-    print("已按下 Close")
-    time.sleep(2)
+        cancel_btn = wait.until(EC.element_to_be_clickable((By.XPATH, cancel_btn_xpath)))
+        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", cancel_btn)
+        time.sleep(0.5)
+        
+        cancel_btn.click()
+        # print("已按下『取消』")
+        time.sleep(2)
 
-    print("封控流程（risk_control）完成")
+        # print("限紅流程（Table limit）完成")
+
+    except Exception as e:
+        print("Table_limit 發生錯誤：", e)
 
 
 # =======================================
@@ -499,16 +527,16 @@ def main():
     driver = create_driver()
 
     url = "https://admin.fin88.app"
-    print(f"前往網站：{url}")
+    # print(f"前往網站：{url}")
     driver.get(url)
 
-    print("已成功導向網站")
+    # print("已成功導向網站")
 
     # ⭐ 使用者選擇要創建 5 隻或 10 隻
     while True:
         try:
             create_count = int(input("請選擇要創建帳號數量 (5 或 10)：").strip())
-            if create_count in (5, 10):
+            if create_count in (2, 10):
                 break
             else:
                 print("請只能輸入 5 或 10")
@@ -519,8 +547,7 @@ def main():
 
     # ⭐ 先登入一次代理
     agent_account, agent_password = login(driver)
-    
-    input("請確認已成功登入代理後，按下 Enter 鍵繼續...")
+
     # ⭐ TXT 建在桌面
     DESKTOP = os.path.join(os.path.expanduser("~"), "Desktop")
     txt_path = os.path.join(DESKTOP, f"{agent_account}.txt")
@@ -541,7 +568,7 @@ def main():
         set_credit_limit(driver)
         manufacturers(driver)
         hold_position(driver)
-        risk_control(driver)
+        Table_limit(driver)
 
         append_random_account(created_account, txt_path)
         print(f"已寫入：{created_account} -> {txt_path}")
