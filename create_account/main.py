@@ -476,14 +476,14 @@ def Table_limit(driver):
         time.sleep(0.5)
         
         table_limit.click()
-        print("已點擊限紅下拉選單")
+        # print("已點擊限紅下拉選單")
         time.sleep(1)
 
         # === 2️⃣ 選擇第一個選項 (100-1000) ===
         first_option_xpath = "//div[contains(@class, 'ant-select-item-option')][@title='100-1000']"
         first_option = wait.until(EC.element_to_be_clickable((By.XPATH, first_option_xpath)))
         first_option.click()
-        print("已選擇限紅選項：100-1000")
+        # print("已選擇限紅選項：100-1000")
         time.sleep(1)
 
         # === 3️⃣ 輸入封頂數值 ===
