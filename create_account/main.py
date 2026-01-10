@@ -11,6 +11,11 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
+# ============FIN網址================
+URL = "https://admin.fin88.app"
+# ============TG網址================
+# URL = "https://admin.tg5688.com"
+
 
 # ============================
 # 建立 Chrome Driver（使用 ChromeDriverManager）
@@ -163,15 +168,15 @@ def login(driver):
         login_btn.click()
 
         # 等待跳轉完成
-        time.sleep(4)
+        time.sleep(8)
 
-        # ⭐ 不再點擊返回首頁,直接導向個人頁面
-        target_url = "https://admin.fin88.app/#/dashboard/workbench"
-        # print(f"導向個人頁面:{target_url}")
-        driver.get(target_url)
+        # # ⭐ 不再點擊返回首頁,直接導向個人頁面
+        # target_url = "https://admin.fin88.app/#/dashboard/workbench"
+        # # print(f"導向個人頁面:{target_url}")
+        # driver.get(target_url)
 
-        # 等待頁面載入
-        time.sleep(2)
+        # # 等待頁面載入
+        # time.sleep(2)
 
         # 關閉公告彈窗
         try:
@@ -526,9 +531,9 @@ def Table_limit(driver):
 def main():
     driver = create_driver()
 
-    url = "https://admin.fin88.app"
-    # print(f"前往網站：{url}")
-    driver.get(url)
+    
+    # print(f"前往網站：{URL}")
+    driver.get(URL)
 
     # print("已成功導向網站")
 
