@@ -14,6 +14,10 @@ from webdriver_manager.chrome import ChromeDriverManager
 from threading import Thread
 import threading
 
+# ============FIN網址================
+# URL = "https://admin.fin88.app"
+# ============TG網址================
+URL = "https://admin.tg5688.com"
 
 def load_user_info():
     """從用戶資訊.txt讀取所有帳號、密碼和金額"""
@@ -117,8 +121,7 @@ def login_to_system(driver, username_text, password_text):
     """登入系統"""
     print(Fore.CYAN + "正在導航到登入頁面..." + Style.RESET_ALL)
     
-    # 導航到 https://admin.fin88.app
-    driver.get("https://admin.fin88.app")
+    driver.get(URL)
     driver.maximize_window()
     time.sleep(2)
 
