@@ -75,13 +75,14 @@ def build_exe():
         '--hidden-import=selenium.webdriver.support.expected_conditions',
         '--hidden-import=webdriver_manager',
         '--hidden-import=webdriver_manager.chrome',
+        '--hidden-import=colorama',
+        '--hidden-import=threading',
         
         # 排除不需要的模組以減小文件大小
         '--exclude-module=matplotlib',
         '--exclude-module=numpy',
         '--exclude-module=pandas',
         '--exclude-module=tkinter',
-        '--exclude-module=colorama',
         
         # 其他選項
         '--noupx',                          # 不使用 UPX 壓縮（避免某些防毒軟體誤報）
