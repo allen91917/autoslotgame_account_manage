@@ -313,8 +313,16 @@ def export_to_excel(all_accounts_data):
         # 獲取桌面路徑
         desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
         
-        file_name = f"FIN報表.xlsx"
-        file_path = os.path.join(desktop_path, file_name)
+        # 根據 URL 決定檔案名稱
+        if URL == "https://admin.fin88.app":
+            file_name = "FIN報表.xlsx"
+        elif URL == "https://admin.tg5688.com":
+            file_name = "TG報表.xlsx"
+        elif URL == "https://admin.richpanda.vip":
+            file_name = "富胖達報表.xlsx"
+        else:
+            file_name = "報表.xlsx"
+        
         file_path = os.path.join(desktop_path, file_name)
         
         print(f"\n正在匯出 Excel 檔案到: {file_path}")
