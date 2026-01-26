@@ -18,6 +18,8 @@ import threading
 URL = "https://admin.fin88.app"
 # ============TG網址================
 # URL = "https://admin.tg5688.com"
+# ============富胖達網址================
+# URL = "https://admin.richpanda.vip"
 
 def load_user_info():
     """從用戶資訊.txt讀取所有帳號、密碼和金額"""

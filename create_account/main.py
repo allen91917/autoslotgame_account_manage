@@ -19,6 +19,8 @@ from colorama import init, Fore, Style
 URL = "https://admin.fin88.app"
 # ============TG網址================
 # URL = "https://admin.tg5688.com"
+# ============富胖達網址================
+# URL = "https://admin.richpanda.vip"
 
 # 初始化 colorama
 init(autoreset=True)

@@ -19,6 +19,8 @@ import time
 URL = "https://admin.fin88.app"
 # ============TG網址================
 # URL = "https://admin.tg5688.com"
+# ============富胖達網址================
+# URL = "https://admin.richpanda.vip"
 
 # ============================
 # 建立 Chrome Driver（使用 ChromeDriverManager）
