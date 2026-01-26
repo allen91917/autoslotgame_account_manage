@@ -156,10 +156,15 @@ def main():
     print("報表系統 - Windows EXE 打包工具")
     print("="*60)
     
+    # 切換到腳本所在的目錄
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(script_dir)
+    print(f"工作目錄: {script_dir}")
+    
     # 檢查是否在正確的目錄
     if not os.path.exists('main.py'):
         print("✗ 錯誤: 找不到 main.py")
-        print("請在 get_report 資料夾中執行此腳本")
+        print("請確保 main.py 與 build.py 在同一資料夾中")
         return
     
     if not os.path.exists('用戶資訊.txt'):
